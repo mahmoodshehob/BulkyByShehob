@@ -14,7 +14,7 @@ using System.Linq;
 namespace BulkyShWeb.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    [Authorize(Roles = SD.Role_Admin)]
+    [Authorize(Roles = SD.Roles.Admin)]
 
     public class CompanyController : Controller
     {

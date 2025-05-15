@@ -4,6 +4,8 @@ using BulkySh.Models.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
+using BulkySh.Utility;
+using Microsoft.AspNetCore.Http;
 
 
 
@@ -21,12 +23,27 @@ namespace BulkyShWeb.Areas.Customer.Controllers
             _unitOfWork = unitOfWork;
         }
 
-        public IActionResult Index()
+		private void updateCartCount()
+		{
+			var cliamdIdentity = (ClaimsIdentity)User.Identity;
+			var cliam = cliamdIdentity.FindFirst(ClaimTypes.NameIdentifier);
+            if (cliam != null)
+            {
+                HttpContext.Session.SetInt32(SD.SessionCart, _unitOfWork.ShoppingCart.GetAll(u => u.ApplicationUserId == cliam.Value).Count());
+            }
+            else 
+            {
+				HttpContext.Session.Clear();
+			}
+		}
+
+		public IActionResult Index()
         {
+            updateCartCount();
 
+			IEnumerable<Product> productList = _unitOfWork.Product.GetAll(includeProperties: "Category");
 
-            IEnumerable<Product> productList = _unitOfWork.Product.GetAll(includeProperties: "Category");
-            return View(productList);
+			return View(productList);
         }
 
         public IActionResult Details(int productId)
@@ -65,7 +82,7 @@ namespace BulkyShWeb.Areas.Customer.Controllers
             shoppingCart.ApplicationUserId = userId;
 
             ShoppingCart cartFromDb = _unitOfWork.ShoppingCart.Get(
-                u => u.ApplicationUserId == shoppingCart.ApplicationUserId &&
+                u => u.ApplicationUserId == userId &&
                 u.ProductId == shoppingCart.ProductId);
 
             if (cartFromDb != null)
@@ -74,15 +91,19 @@ namespace BulkyShWeb.Areas.Customer.Controllers
 
                 cartFromDb.Count += shoppingCart.Count;
                 _unitOfWork.ShoppingCart.Update(cartFromDb);
-            }
+				_unitOfWork.Save();
+			}
             else
             {
                 _unitOfWork.ShoppingCart.Add(shoppingCart);
-            }
+				_unitOfWork.Save();
+                updateCartCount();
+
+			}
 
 
-            TempData["success"] = "Cart updated Successfully";
-            _unitOfWork.Save();
+			TempData["success"] = "Cart updated Successfully";
+            
 
 			return RedirectToAction(nameof(Index));
 		}

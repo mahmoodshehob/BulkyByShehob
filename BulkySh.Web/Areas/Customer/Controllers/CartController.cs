@@ -29,6 +29,21 @@ namespace BulkyShWeb.Areas.Customer.Controllers
 			//_emailSender = emailSender;
 		}
 
+		private void updateCartCount()
+		{
+			var cliamdIdentity = (ClaimsIdentity)User.Identity;
+			var cliam = cliamdIdentity.FindFirst(ClaimTypes.NameIdentifier);
+			if (cliam != null)
+			{
+				HttpContext.Session.SetInt32(SD.SessionCart, _unitOfWork.ShoppingCart.GetAll(u => u.ApplicationUserId == cliam.Value).Count());
+			}
+			else
+			{
+				HttpContext.Session.SetInt32(SD.SessionCart, 0);
+			}
+		}
+
+
 		public IActionResult Index()
 		{
 			ShoppingCartVM = new();
@@ -83,7 +98,7 @@ namespace BulkyShWeb.Areas.Customer.Controllers
 			_unitOfWork.ShoppingCart.Update(cartFromDB);
 			_unitOfWork.Save();
 
-
+			updateCartCount();
 			return RedirectToAction(nameof(Index));
 		}
 
@@ -104,6 +119,8 @@ namespace BulkyShWeb.Areas.Customer.Controllers
 
 			_unitOfWork.Save();
 
+			updateCartCount();
+
 			return RedirectToAction(nameof(Index));
 		}
 
@@ -114,6 +131,7 @@ namespace BulkyShWeb.Areas.Customer.Controllers
 			_unitOfWork.ShoppingCart.Remove(cartFromDB);
 			_unitOfWork.Save();
 
+			updateCartCount();
 			return RedirectToAction(nameof(Index));
 		}
 
@@ -193,14 +211,14 @@ namespace BulkyShWeb.Areas.Customer.Controllers
 			if (applicationUser.CompanyId.GetValueOrDefault() == 0)
 			{
 				//it is a regular customer 
-				ShoppingCartVM.OrderHeader.PaymentStatus = SD_PaymentStatus.Pending;
-				ShoppingCartVM.OrderHeader.OrderStatus = SD_Status.Pending;
+				ShoppingCartVM.OrderHeader.PaymentStatus = SD.PaymentStatus.Pending;
+				ShoppingCartVM.OrderHeader.OrderStatus = SD.Status.Pending;
 			}
 			else
 			{
 				//it is a company user
-				ShoppingCartVM.OrderHeader.PaymentStatus = SD_PaymentStatus.DelayedPayment;
-				ShoppingCartVM.OrderHeader.OrderStatus = SD_Status.Approved;
+				ShoppingCartVM.OrderHeader.PaymentStatus = SD.PaymentStatus.DelayedPayment;
+				ShoppingCartVM.OrderHeader.OrderStatus = SD.Status.Approved;
 			}
 
 			_unitOfWork.OrderHeader.Add(ShoppingCartVM.OrderHeader);
@@ -279,7 +297,7 @@ namespace BulkyShWeb.Areas.Customer.Controllers
 		{
 
 			OrderHeader orderHeader = _unitOfWork.OrderHeader.Get(u => u.Id == id, includeProperties: "ApplicationUser");
-			if (orderHeader.PaymentStatus != SD_PaymentStatus.DelayedPayment)
+			if (orderHeader.PaymentStatus != SD.PaymentStatus.DelayedPayment)
 			{
 				//this is an order by customer
 
@@ -289,7 +307,7 @@ namespace BulkyShWeb.Areas.Customer.Controllers
 				if (session.PaymentStatus.ToLower() == "paid")
 				{
 					_unitOfWork.OrderHeader.UpdateStripePaymentID(id, session.Id, session.PaymentIntentId);
-					_unitOfWork.OrderHeader.UpdateStatus(id, SD_Status.Approved, SD_PaymentStatus.Approved);
+					_unitOfWork.OrderHeader.UpdateStatus(id, SD.Status.Approved, SD.PaymentStatus.Approved);
 					_unitOfWork.Save();
 				}
 				HttpContext.Session.Clear();

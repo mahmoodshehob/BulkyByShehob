@@ -2,13 +2,13 @@
 using BulkySh.DataAccess.Repository.IRepository;
 using BulkySh.Models.Models;
 using BulkySh.Utility;
-//using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BulkyShWeb.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    //[Authorize(Roles = SD.Role_Admin)]
+    [Authorize(Roles = SD.Roles.Admin)]
     public class CategoryController : Controller
     {
         private readonly IUnitOfWork _unitOfWork;

@@ -38,7 +38,7 @@ namespace BulkySh.Web.Areas.Admin.Controllers
 			return View(OrderVM);
 		}
 		[HttpPost]
-		[Authorize(Roles = SD.Role_Admin + "," + SD.Role_Employee)]
+		[Authorize(Roles = SD.Roles.Admin + "," + SD.Roles.Admin)]
 		public IActionResult UpdateOrderDetail()
 		{
 			var orderHeaderFromDb = _unitOfWork.OrderHeader.Get(u => u.Id == OrderVM.OrderHeader.Id);
@@ -67,10 +67,10 @@ namespace BulkySh.Web.Areas.Admin.Controllers
 
 
 		[HttpPost]
-		[Authorize(Roles = SD.Role_Admin + "," + SD.Role_Employee)]
+		[Authorize(Roles = SD.Roles.Admin + "," + SD.Roles.Admin)]
 		public IActionResult StartProcessing()
 		{
-			_unitOfWork.OrderHeader.UpdateStatus(OrderVM.OrderHeader.Id, SD_Status.InProcess);
+			_unitOfWork.OrderHeader.UpdateStatus(OrderVM.OrderHeader.Id, SD.Status.InProcess);
 			_unitOfWork.Save();
 			TempData["Success"] = "Order Details Updated Successfully.";
 			return RedirectToAction(nameof(Details), new { orderId = OrderVM.OrderHeader.Id });
@@ -84,9 +84,9 @@ namespace BulkySh.Web.Areas.Admin.Controllers
 		//	var orderHeader = _unitOfWork.OrderHeader.Get(u => u.Id == OrderVM.OrderHeader.Id);
 		//	orderHeader.TrackingNumber = OrderVM.OrderHeader.TrackingNumber;
 		//	orderHeader.Carrier = OrderVM.OrderHeader.Carrier;
-		//	orderHeader.OrderStatus = SD_Status.Shipped;
+		//	orderHeader.OrderStatus = SD.Status.Shipped;
 		//	orderHeader.ShippingDate = DateTime.Now;
-		//	if (orderHeader.PaymentStatus == SD_PaymentStatus.DelayedPayment)
+		//	if (orderHeader.PaymentStatus == SD.PaymentStatus.DelayedPayment)
 		//	{
 		//		orderHeader.PaymentDueDate = DateTime.Now.AddDays(30);
 		//	}
@@ -99,13 +99,13 @@ namespace BulkySh.Web.Areas.Admin.Controllers
 
 
 		[HttpPost]
-		[Authorize(Roles = SD.Role_Admin + "," + SD.Role_Employee)]
+		[Authorize(Roles = SD.Roles.Admin + "," + SD.Roles.Admin)]
 		public IActionResult CancelOrder()
 		{
 
 			var orderHeader = _unitOfWork.OrderHeader.Get(u => u.Id == OrderVM.OrderHeader.Id);
 
-			if (orderHeader.PaymentStatus == SD_PaymentStatus.Approved)
+			if (orderHeader.PaymentStatus == SD.PaymentStatus.Approved)
 			{
 				var options = new RefundCreateOptions
 				{
@@ -116,11 +116,11 @@ namespace BulkySh.Web.Areas.Admin.Controllers
 				var service = new RefundService();
 				Refund refund = service.Create(options);
 
-				_unitOfWork.OrderHeader.UpdateStatus(orderHeader.Id, SD_Status.Cancelled, SD_Status.Refunded);
+				_unitOfWork.OrderHeader.UpdateStatus(orderHeader.Id, SD.Status.Cancelled, SD.Status.Refunded);
 			}
 			else
 			{
-				_unitOfWork.OrderHeader.UpdateStatus(orderHeader.Id, SD_Status.Cancelled, SD_Status.Cancelled);
+				_unitOfWork.OrderHeader.UpdateStatus(orderHeader.Id, SD.Status.Cancelled, SD.Status.Cancelled);
 			}
 			_unitOfWork.Save();
 			TempData["Success"] = "Order Cancelled Successfully.";
@@ -180,7 +180,7 @@ namespace BulkySh.Web.Areas.Admin.Controllers
 		{
 
 			OrderHeader orderHeader = _unitOfWork.OrderHeader.Get(u => u.Id == orderHeaderId);
-			if (orderHeader.PaymentStatus == SD_PaymentStatus.DelayedPayment)
+			if (orderHeader.PaymentStatus == SD.PaymentStatus.DelayedPayment)
 			{
 				//this is an order by company
 
@@ -190,7 +190,7 @@ namespace BulkySh.Web.Areas.Admin.Controllers
 				if (session.PaymentStatus.ToLower() == "paid")
 				{
 					_unitOfWork.OrderHeader.UpdateStripePaymentID(orderHeaderId, session.Id, session.PaymentIntentId);
-					_unitOfWork.OrderHeader.UpdateStatus(orderHeaderId, orderHeader.OrderStatus, SD_PaymentStatus.Approved);
+					_unitOfWork.OrderHeader.UpdateStatus(orderHeaderId, orderHeader.OrderStatus, SD.PaymentStatus.Approved);
 					_unitOfWork.Save();
 				}
 
@@ -211,7 +211,7 @@ namespace BulkySh.Web.Areas.Admin.Controllers
 			IEnumerable<OrderHeader> objOrderHeaders;
 
 
-			if (User.IsInRole(SD.Role_Admin) || User.IsInRole(SD.Role_Employee))
+			if (User.IsInRole(SD.Roles.Admin) || User.IsInRole(SD.Roles.Admin))
 			{
 				objOrderHeaders = _unitOfWork.OrderHeader.GetAll(includeProperties: "ApplicationUser").ToList();
 			}
@@ -229,16 +229,16 @@ namespace BulkySh.Web.Areas.Admin.Controllers
 			switch (status)
 			{
 				case "pending":
-					objOrderHeaders = objOrderHeaders.Where(u => u.PaymentStatus == SD_PaymentStatus.DelayedPayment);
+					objOrderHeaders = objOrderHeaders.Where(u => u.PaymentStatus == SD.PaymentStatus.DelayedPayment);
 					break;
 				case "inprocess":
-					objOrderHeaders = objOrderHeaders.Where(u => u.OrderStatus == SD_Status.InProcess);
+					objOrderHeaders = objOrderHeaders.Where(u => u.OrderStatus == SD.Status.InProcess);
 					break;
 				case "completed":
-					objOrderHeaders = objOrderHeaders.Where(u => u.OrderStatus == SD_Status.Shipped);
+					objOrderHeaders = objOrderHeaders.Where(u => u.OrderStatus == SD.Status.Shipped);
 					break;
 				case "approved":
-					objOrderHeaders = objOrderHeaders.Where(u => u.OrderStatus == SD_Status.Approved);
+					objOrderHeaders = objOrderHeaders.Where(u => u.OrderStatus == SD.Status.Approved);
 					break;
 				default:
 					break;
